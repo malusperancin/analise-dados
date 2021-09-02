@@ -3,6 +3,7 @@ rm(list=ls())
 #install.packages("ggplot2")
 #install.packages("ggExtra")
 #install.packages("gridExtra")
+#install.packages("xlsx")
 
 #setwd("C:/Users/maria/Desktop/projeto")
 
@@ -10,7 +11,7 @@ library(ggplot2)
 library(ggExtra)
 library(gridExtra)
 library(RColorBrewer)
-
+library(xlsx)
 
 titulos <- c("horario", "temperatura", "vento", "umidade", "sensacao")
 
@@ -46,32 +47,65 @@ dados <- cepagri #dados prontos
 meses <- factor(month.abb[as.integer(format(as.Date(dados[["horario"]]),"%m"))], levels = month.abb, ordered = TRUE) 
 anos <- factor(as.integer(format(as.Date(dados[["horario"]]),"%Y")), levels = c(2015:2020), ordered = TRUE)
 
+h2018 <- dados[dados[["horario"]] > "2017-12-31" & dados[["horario"]] <= "2018-12-31",]
+meses2018 <- factor(month.abb[as.integer(format(as.Date(h2018[["horario"]]),"%m"))], levels = month.abb, ordered = TRUE) 
 
-#TEMPERATURA POR HORARIO LINE
+h2015 <- dados[dados[["horario"]] >= "2015-01-01" & dados[["horario"]] <= "2015-12-31",]
+meses2015 <- factor(month.abb[as.integer(format(as.Date(h2015[["horario"]]),"%m"))], levels = month.abb, ordered = TRUE) 
+
+
+#TEMPERATURA POR HORARIO usando geom_line
 plot1 <- ggplot(dados, aes(y=temperatura, x=horario, colour=temperatura))
 plot1 <- plot1 + geom_line()
+plot1
 
 
-#TEMPERATURA E SENSACAO JITTER
-plot2 <- ggplot(dados, aes(x = sensacao, y = temperatura)) + geom_jitter(color="gray") + geom_smooth(method = "lm")
+#VENTO E SENSACAO usando geom_smooth
+plot2 <- ggplot(dados, aes(x = sensacao, y = vento)) + geom_smooth()
+plot2
 
 
-#VENTO POR MESES BOXPLOT
+#VENTO POR MESES usando boxplot
 plot3 <- ggplot(dados,aes(x=meses,y=vento,group=meses,fill=meses))
 plot3 <- plot3 +geom_boxplot()
+plot3
 
+plot31 <- ggplot(h2015,aes(x=meses2015,y=vento,group=meses2015,fill=meses2015))
+plot31 <- plot31 +geom_boxplot()
+plot31
 
-#TEMPERATURA POR VENTO LINE
-plot4 <- ggplot(dados, aes(y=temperatura, x=vento, colour=vento))
-plot4 <- plot4 + geom_line()
+plot32 <- ggplot(h2018,aes(x=meses2018,y=vento,group=meses2018,fill=meses2018))
+plot32 <- plot32 +geom_boxplot()
+plot32
 
+#VENTO UMIDADE E TEMPERATURA usando ggMarginal
+plot4 <- ggplot(dados, aes(x=temperatura, y=vento, color=umidade)) + geom_point() + theme_bw()
+plot4 <- ggMarginal(plot4, type="histogram") 
+plot4
 
-#UMIDADE POR MESES BOXPLOT
-plot5 <- ggplot(dados,aes(x=meses,y=umidade,group=meses,fill=meses))
+#UMIDADE POR ANOS usando boxplot
+plot5 <- ggplot(dados,aes(x=anos,y=umidade,group=anos,fill=anos))
 plot5 <- plot5 +geom_boxplot()
+plot5
+
+#UMIDADE EM 2018 usando boxplot
+plot6 <- ggplot(h2018, aes(y=umidade, x=meses2018, group=meses2018,fill=meses2018))
+plot6 <- plot6 + geom_boxplot()
+plot6
+
+# Tabela comparativa de umidade entre 2018 e 2015 
+tabelaUmidade <- cbind(h2015$umidade, h2018$umidade)
+colnames(tabelaUmidade) <- c("umidade 2015", "umidade 2018")
+write.xlsx(tabelaUmidade,file="tabelaUmidade2015_2018.xlsx")
+tabelaUmidade
 
 
-plot_grid(plot1, plot2, plot3, plot4,plot5)
-
+# Tabela comparativa de ventos entre 09/2015 e 10/2015
+outubro2015 <- dados[dados[["horario"]] > "2015-09-01" & dados[["horario"]] <= "2015-11-01",]
+outubro2018 <- dados[dados[["horario"]] > "2018-09-01" & dados[["horario"]] <= "2018-11-01",]
+tabelaVento <- cbind(as.character(as.Date(outubro2015$horario, format="%d/%m/%y")),outubro2015$vento, outubro2018$vento)
+colnames(tabelaVento) <- c("data","vento 2015", "vento 2018")
+write.xlsx(tabelaVento,file="tabelaVento2015_2018.xlsx")
+tabelaVento
 
 
